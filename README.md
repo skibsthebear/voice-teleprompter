@@ -1,5 +1,13 @@
 # Voice-Activated Teleprompter
 
+> **Disclaimer:** This is a modified fork of the original project. I do not take credit for the original work. I have only modified it to add Firebase authentication and cloud storage backend for my personal needs. All credit for the core functionality and original design goes to the original author.
+>
+> **Original Repository:** [jlecomte/voice-activated-teleprompter](https://github.com/jlecomte/voice-activated-teleprompter)
+
+---
+
+## Original README
+
 I do not charge anything to create and maintain these open-source projects. But if you would like to say "thanks" for this project, feel free to send any amount through Paypal using the button below. I appreciate your support!
 
 [![](donate.png)](https://www.paypal.com/donate/?hosted_button_id=49UXY8F6VVYFA)
