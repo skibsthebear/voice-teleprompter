@@ -16,6 +16,8 @@ export interface ContentSliceState {
   transcriptId: string
   isLoading: boolean
   lastSavedAt: number | null
+  hasUnsavedChanges: boolean
+  isSaving: boolean
 }
 
 const initialText = 'Click on the "Edit" button and paste your content here...'
@@ -28,6 +30,8 @@ const initialState: ContentSliceState = {
   transcriptId: "",
   isLoading: false,
   lastSavedAt: null,
+  hasUnsavedChanges: false,
+  isSaving: false,
 }
 
 export const contentSlice = createAppSlice({
@@ -43,6 +47,7 @@ export const contentSlice = createAppSlice({
       state.textElements = tokenize(action.payload)
       state.finalTranscriptIndex = -1
       state.interimTranscriptIndex = -1
+      state.hasUnsavedChanges = true
     }),
 
     setFinalTranscriptIndex: create.reducer(
@@ -102,6 +107,7 @@ export const contentSlice = createAppSlice({
             state.textElements = tokenize(action.payload.content)
           }
           state.isLoading = false
+          state.hasUnsavedChanges = false
         },
         rejected: (state, action) => {
           console.error("Failed to load transcript:", action.error)
@@ -120,11 +126,17 @@ export const contentSlice = createAppSlice({
         return Date.now()
       },
       {
+        pending: state => {
+          state.isSaving = true
+        },
         fulfilled: (state, action) => {
           state.lastSavedAt = action.payload
+          state.hasUnsavedChanges = false
+          state.isSaving = false
         },
         rejected: (state, action) => {
           console.error("Failed to save transcript:", action.error)
+          state.isSaving = false
         },
       },
     ),
@@ -143,6 +155,8 @@ export const contentSlice = createAppSlice({
     selectTranscriptId: state => state.transcriptId,
     selectIsLoading: state => state.isLoading,
     selectLastSavedAt: state => state.lastSavedAt,
+    selectHasUnsavedChanges: state => state.hasUnsavedChanges,
+    selectIsSaving: state => state.isSaving,
   },
 })
 
@@ -165,4 +179,6 @@ export const {
   selectTranscriptId,
   selectIsLoading,
   selectLastSavedAt,
+  selectHasUnsavedChanges,
+  selectIsSaving,
 } = contentSlice.selectors

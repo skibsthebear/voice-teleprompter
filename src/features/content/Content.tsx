@@ -10,8 +10,6 @@ import {
   saveTranscriptToFirestore,
 } from "./contentSlice"
 
-import { subscribeToTranscript } from "../../lib/transcript-storage"
-
 import {
   selectStatus,
   selectHorizontallyFlipped,
@@ -29,6 +27,7 @@ import {
   selectInterimTranscriptIndex,
   selectTranscriptId,
   selectIsLoading,
+  selectHasUnsavedChanges,
 } from "./contentSlice"
 
 export const Content = () => {
@@ -47,6 +46,7 @@ export const Content = () => {
   const interimTranscriptIndex = useAppSelector(selectInterimTranscriptIndex)
   const transcriptId = useAppSelector(selectTranscriptId)
   const isLoading = useAppSelector(selectIsLoading)
+  const hasUnsavedChanges = useAppSelector(selectHasUnsavedChanges)
 
   const style = {
     fontSize: `${fontSize}px`,
@@ -56,7 +56,6 @@ export const Content = () => {
   const containerRef = useRef<null | HTMLDivElement>(null)
   const lastRef = useRef<null | HTMLDivElement>(null)
   const bottomSpacerRef = useRef<null | HTMLDivElement>(null)
-  const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 
   // Initialize transcript ID on mount
   useEffect(() => {
@@ -70,43 +69,20 @@ export const Content = () => {
     }
   }, [dispatch, transcriptId])
 
-  // Subscribe to real-time updates from other devices
+  // No auto-save - user must click Save button manually
+
+  // Warn before leaving page with unsaved changes
   useEffect(() => {
-    if (!transcriptId) return
-
-    const unsubscribe = subscribeToTranscript(transcriptId, data => {
-      if (data && data.content !== rawText) {
-        // Update content only if it's different (avoids loops)
-        dispatch(setContent(data.content))
-      }
-    })
-
-    return () => {
-      unsubscribe()
-    }
-  }, [dispatch, transcriptId, rawText])
-
-  // Auto-save transcript when content changes (debounced)
-  useEffect(() => {
-    if (!transcriptId || !rawText) return
-
-    // Clear existing timeout
-    if (saveTimeoutRef.current) {
-      clearTimeout(saveTimeoutRef.current)
-    }
-
-    // Save after 1 second of no changes
-    saveTimeoutRef.current = setTimeout(() => {
-      dispatch(saveTranscriptToFirestore({ transcriptId, content: rawText }))
-    }, 1000)
-
-    // Cleanup
-    return () => {
-      if (saveTimeoutRef.current) {
-        clearTimeout(saveTimeoutRef.current)
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (hasUnsavedChanges) {
+        e.preventDefault()
+        e.returnValue = ""
       }
     }
-  }, [dispatch, transcriptId, rawText])
+
+    window.addEventListener("beforeunload", handleBeforeUnload)
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload)
+  }, [hasUnsavedChanges])
 
   useEffect(() => {
     if (containerRef.current) {
@@ -140,12 +116,29 @@ export const Content = () => {
           <p>Loading transcript...</p>
         </div>
       ) : status === "editing" ? (
-        <textarea
-          className="content"
-          style={style}
-          value={rawText}
-          onChange={e => dispatch(setContent(e.target.value || ""))}
-        />
+        <>
+          {hasUnsavedChanges && (
+            <div
+              className="notification is-warning"
+              style={{
+                margin: "1rem",
+                padding: "0.75rem 1rem",
+                borderRadius: "4px",
+              }}
+            >
+              <i className="fa-solid fa-triangle-exclamation"></i> You have
+              unsaved changes! Click the{" "}
+              <strong>Save button (floppy disk icon)</strong> in the toolbar to
+              save your changes.
+            </div>
+          )}
+          <textarea
+            className="content"
+            style={style}
+            value={rawText}
+            onChange={e => dispatch(setContent(e.target.value || ""))}
+          />
+        </>
       ) : (
         <div
           className="content"

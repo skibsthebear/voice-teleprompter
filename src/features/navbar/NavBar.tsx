@@ -22,7 +22,14 @@ import {
   SUPPORTED_LOCALES,
 } from "./navbarSlice"
 
-import { resetTranscriptionIndices } from "../content/contentSlice"
+import {
+  resetTranscriptionIndices,
+  saveTranscriptToFirestore,
+  selectTranscriptId,
+  selectRawText,
+  selectHasUnsavedChanges,
+  selectIsSaving,
+} from "../content/contentSlice"
 import { logout } from "../auth/authSlice"
 
 export const NavBar = () => {
@@ -36,6 +43,16 @@ export const NavBar = () => {
   const horizontallyFlipped = useAppSelector(selectHorizontallyFlipped)
   const verticallyFlipped = useAppSelector(selectVerticallyFlipped)
   const language = useAppSelector(selectLanguage)
+  const transcriptId = useAppSelector(selectTranscriptId)
+  const rawText = useAppSelector(selectRawText)
+  const hasUnsavedChanges = useAppSelector(selectHasUnsavedChanges)
+  const isSaving = useAppSelector(selectIsSaving)
+
+  const handleSave = () => {
+    if (transcriptId && rawText) {
+      dispatch(saveTranscriptToFirestore({ transcriptId, content: rawText }))
+    }
+  }
 
   return (
     <nav
@@ -163,6 +180,29 @@ export const NavBar = () => {
                   <span className="icon is-small">
                     <i className="fa-solid fa-pencil" />
                   </span>
+                </button>
+                <button
+                  className={`button ${hasUnsavedChanges ? "is-warning" : "is-success"}`}
+                  onClick={handleSave}
+                  disabled={isSaving || !transcriptId}
+                  title={
+                    isSaving
+                      ? "Saving..."
+                      : hasUnsavedChanges
+                        ? "Save Changes"
+                        : "All Changes Saved"
+                  }
+                >
+                  <span className="icon is-small">
+                    <i
+                      className={`fa-solid ${isSaving ? "fa-spinner fa-spin" : "fa-floppy-disk"}`}
+                    />
+                  </span>
+                  {hasUnsavedChanges && (
+                    <span className="ml-1">
+                      <i className="fa-solid fa-circle" style={{ fontSize: "6px" }} />
+                    </span>
+                  )}
                 </button>
                 <button
                   className={`button ${horizontallyFlipped ? "horizontally-flipped" : ""}`}
