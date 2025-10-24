@@ -1,0 +1,7 @@
+{
+  "projects": {
+    "staging": "your-firebase-project-id"
+  },
+  "targets": {},
+  "etags": {}
+}

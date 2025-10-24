@@ -10,6 +10,8 @@ import {
   saveTranscriptToFirestore,
 } from "./contentSlice"
 
+import { subscribeToTranscript } from "../../lib/transcript-storage"
+
 import {
   selectStatus,
   selectHorizontallyFlipped,
@@ -67,6 +69,22 @@ export const Content = () => {
       dispatch(loadTranscriptFromFirestore(transcriptId))
     }
   }, [dispatch, transcriptId])
+
+  // Subscribe to real-time updates from other devices
+  useEffect(() => {
+    if (!transcriptId) return
+
+    const unsubscribe = subscribeToTranscript(transcriptId, data => {
+      if (data && data.content !== rawText) {
+        // Update content only if it's different (avoids loops)
+        dispatch(setContent(data.content))
+      }
+    })
+
+    return () => {
+      unsubscribe()
+    }
+  }, [dispatch, transcriptId, rawText])
 
   // Auto-save transcript when content changes (debounced)
   useEffect(() => {

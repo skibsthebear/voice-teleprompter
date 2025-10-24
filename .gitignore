@@ -60,3 +60,11 @@ Desktop.ini
 # Package manager
 .yarn/
 .pnpm-store/
+
+# Firebase
+.firebaserc
+firebase-debug.log
+firestore-debug.log
+ui-debug.log
+.runtimeconfig.json
+service-account.json

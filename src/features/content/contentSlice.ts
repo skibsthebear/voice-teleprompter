@@ -40,6 +40,7 @@ export const contentSlice = createAppSlice({
   reducers: create => ({
     setContent: create.reducer((state, action: PayloadAction<string>) => {
       state.rawText = action.payload
+      state.textElements = tokenize(action.payload)
       state.finalTranscriptIndex = -1
       state.interimTranscriptIndex = -1
     }),
@@ -102,7 +103,8 @@ export const contentSlice = createAppSlice({
           }
           state.isLoading = false
         },
-        rejected: state => {
+        rejected: (state, action) => {
+          console.error("Failed to load transcript:", action.error)
           state.isLoading = false
         },
       },
@@ -120,6 +122,9 @@ export const contentSlice = createAppSlice({
       {
         fulfilled: (state, action) => {
           state.lastSavedAt = action.payload
+        },
+        rejected: (state, action) => {
+          console.error("Failed to save transcript:", action.error)
         },
       },
     ),

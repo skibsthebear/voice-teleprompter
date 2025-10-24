@@ -36,11 +36,17 @@ export const saveTranscript = async (
   transcriptId: string,
   content: string,
 ): Promise<void> => {
-  const transcriptRef = doc(db, COLLECTION_NAME, transcriptId)
-  await setDoc(transcriptRef, {
-    content,
-    updatedAt: Date.now(),
-  })
+  try {
+    const transcriptRef = doc(db, COLLECTION_NAME, transcriptId)
+    await setDoc(transcriptRef, {
+      content,
+      updatedAt: Date.now(),
+    })
+    console.log(`[Firebase] Transcript ${transcriptId} saved successfully`)
+  } catch (error) {
+    console.error("[Firebase] Error saving transcript:", error)
+    throw error
+  }
 }
 
 /**
@@ -49,14 +55,21 @@ export const saveTranscript = async (
 export const loadTranscript = async (
   transcriptId: string,
 ): Promise<TranscriptData | null> => {
-  const transcriptRef = doc(db, COLLECTION_NAME, transcriptId)
-  const docSnap = await getDoc(transcriptRef)
+  try {
+    const transcriptRef = doc(db, COLLECTION_NAME, transcriptId)
+    const docSnap = await getDoc(transcriptRef)
 
-  if (docSnap.exists()) {
-    return docSnap.data() as TranscriptData
+    if (docSnap.exists()) {
+      console.log(`[Firebase] Transcript ${transcriptId} loaded successfully`)
+      return docSnap.data() as TranscriptData
+    }
+
+    console.log(`[Firebase] Transcript ${transcriptId} does not exist`)
+    return null
+  } catch (error) {
+    console.error("[Firebase] Error loading transcript:", error)
+    throw error
   }
-
-  return null
 }
 
 /**
@@ -68,13 +81,21 @@ export const subscribeToTranscript = (
 ): (() => void) => {
   const transcriptRef = doc(db, COLLECTION_NAME, transcriptId)
 
-  const unsubscribe = onSnapshot(transcriptRef, docSnap => {
-    if (docSnap.exists()) {
-      callback(docSnap.data() as TranscriptData)
-    } else {
-      callback(null)
-    }
-  })
+  const unsubscribe = onSnapshot(
+    transcriptRef,
+    docSnap => {
+      if (docSnap.exists()) {
+        console.log(`[Firebase] Transcript ${transcriptId} updated from remote`)
+        callback(docSnap.data() as TranscriptData)
+      } else {
+        console.log(`[Firebase] Transcript ${transcriptId} deleted or does not exist`)
+        callback(null)
+      }
+    },
+    error => {
+      console.error("[Firebase] Error in real-time subscription:", error)
+    },
+  )
 
   return unsubscribe
 }

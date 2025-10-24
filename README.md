@@ -6,6 +6,26 @@
 
 ---
 
+## Modifications Made
+
+This fork adds:
+- **Firebase Authentication**: Login required to access the app
+- **Cloud Storage**: Transcripts auto-save to Firestore
+- **Real-time Sync**: Changes sync across devices automatically
+
+### Setting Up Firebase (For Forkers)
+
+If you want to run this modified version:
+
+1. Create a Firebase project at [console.firebase.google.com](https://console.firebase.google.com/)
+2. Enable Authentication (Email/Password) and Firestore
+3. Copy `.firebaserc.example` to `.firebaserc` and add your project ID
+4. Update `src/lib/firebase.ts` with your Firebase config
+5. Deploy security rules: `firebase deploy --only firestore:rules` or paste `firestore.rules` in Firebase Console
+6. Create user accounts manually in Firebase Console (no public signup)
+
+---
+
 ## Original README
 
 I do not charge anything to create and maintain these open-source projects. But if you would like to say "thanks" for this project, feel free to send any amount through Paypal using the button below. I appreciate your support!
