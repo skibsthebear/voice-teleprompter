@@ -2,12 +2,20 @@ import type { PayloadAction } from "@reduxjs/toolkit"
 import { createAppSlice } from "../../app/createAppSlice"
 import { type TextElement, tokenize } from "../../lib/word-tokenizer"
 import { toggleEdit } from "../navbar/navbarSlice"
+import {
+  getOrCreateTranscriptId,
+  saveTranscript,
+  loadTranscript,
+} from "../../lib/transcript-storage"
 
 export interface ContentSliceState {
   rawText: string
   textElements: TextElement[]
   finalTranscriptIndex: number
   interimTranscriptIndex: number
+  transcriptId: string
+  isLoading: boolean
+  lastSavedAt: number | null
 }
 
 const initialText = 'Click on the "Edit" button and paste your content here...'
@@ -17,6 +25,9 @@ const initialState: ContentSliceState = {
   textElements: tokenize(initialText),
   finalTranscriptIndex: -1,
   interimTranscriptIndex: -1,
+  transcriptId: "",
+  isLoading: false,
+  lastSavedAt: null,
 }
 
 export const contentSlice = createAppSlice({
@@ -49,6 +60,69 @@ export const contentSlice = createAppSlice({
       state.finalTranscriptIndex = -1
       state.interimTranscriptIndex = -1
     }),
+
+    setTranscriptId: create.reducer((state, action: PayloadAction<string>) => {
+      state.transcriptId = action.payload
+    }),
+
+    // Initialize transcript ID from URL
+    initializeTranscriptId: create.asyncThunk(
+      async () => {
+        const transcriptId = getOrCreateTranscriptId()
+        return transcriptId
+      },
+      {
+        pending: state => {
+          state.isLoading = true
+        },
+        fulfilled: (state, action) => {
+          state.transcriptId = action.payload
+          state.isLoading = false
+        },
+        rejected: state => {
+          state.isLoading = false
+        },
+      },
+    ),
+
+    // Load transcript from Firestore
+    loadTranscriptFromFirestore: create.asyncThunk(
+      async (transcriptId: string) => {
+        const data = await loadTranscript(transcriptId)
+        return data
+      },
+      {
+        pending: state => {
+          state.isLoading = true
+        },
+        fulfilled: (state, action) => {
+          if (action.payload) {
+            state.rawText = action.payload.content
+            state.textElements = tokenize(action.payload.content)
+          }
+          state.isLoading = false
+        },
+        rejected: state => {
+          state.isLoading = false
+        },
+      },
+    ),
+
+    // Save transcript to Firestore
+    saveTranscriptToFirestore: create.asyncThunk(
+      async (
+        { transcriptId, content }: { transcriptId: string; content: string },
+        { getState },
+      ) => {
+        await saveTranscript(transcriptId, content)
+        return Date.now()
+      },
+      {
+        fulfilled: (state, action) => {
+          state.lastSavedAt = action.payload
+        },
+      },
+    ),
   }),
 
   extraReducers: builder =>
@@ -61,6 +135,9 @@ export const contentSlice = createAppSlice({
     selectTextElements: state => state.textElements,
     selectFinalTranscriptIndex: state => state.finalTranscriptIndex,
     selectInterimTranscriptIndex: state => state.interimTranscriptIndex,
+    selectTranscriptId: state => state.transcriptId,
+    selectIsLoading: state => state.isLoading,
+    selectLastSavedAt: state => state.lastSavedAt,
   },
 })
 
@@ -69,6 +146,10 @@ export const {
   setFinalTranscriptIndex,
   setInterimTranscriptIndex,
   resetTranscriptionIndices,
+  setTranscriptId,
+  initializeTranscriptId,
+  loadTranscriptFromFirestore,
+  saveTranscriptToFirestore,
 } = contentSlice.actions
 
 export const {
@@ -76,4 +157,7 @@ export const {
   selectTextElements,
   selectFinalTranscriptIndex,
   selectInterimTranscriptIndex,
+  selectTranscriptId,
+  selectIsLoading,
+  selectLastSavedAt,
 } = contentSlice.selectors

@@ -12,4 +12,24 @@ export default defineConfig({
       bulma: resolve(__dirname, "node_modules/bulma/bulma.sass"),
     },
   },
+  css: {
+    preprocessorOptions: {
+      scss: {
+        quietDeps: true,
+        silenceDeprecations: [
+          "import",
+          "global-builtin",
+          "color-functions",
+        ],
+      },
+      sass: {
+        quietDeps: true,
+        silenceDeprecations: [
+          "import",
+          "global-builtin",
+          "color-functions",
+        ],
+      },
+    },
+  },
 })

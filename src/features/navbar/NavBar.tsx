@@ -23,6 +23,7 @@ import {
 } from "./navbarSlice"
 
 import { resetTranscriptionIndices } from "../content/contentSlice"
+import { logout } from "../auth/authSlice"
 
 export const NavBar = () => {
   const dispatch = useAppDispatch()
@@ -212,6 +213,16 @@ export const NavBar = () => {
                 <i
                   className={`fa-solid ${status === "stopped" || status === "editing" ? "fa-play" : "fa-stop"}`}
                 />
+              </span>
+            </button>
+
+            <button
+              className="button is-danger"
+              onClick={() => dispatch(logout())}
+              title="Logout"
+            >
+              <span className="icon is-small">
+                <i className="fa-solid fa-right-from-bracket" />
               </span>
             </button>
           </div>

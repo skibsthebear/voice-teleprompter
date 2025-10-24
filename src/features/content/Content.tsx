@@ -1,7 +1,14 @@
 import { useEffect, useLayoutEffect, useRef } from "react"
 import { escape } from "html-escaper"
 import { useAppDispatch, useAppSelector } from "../../app/hooks"
-import { setContent, setFinalTranscriptIndex, setInterimTranscriptIndex } from "./contentSlice"
+import {
+  setContent,
+  setFinalTranscriptIndex,
+  setInterimTranscriptIndex,
+  initializeTranscriptId,
+  loadTranscriptFromFirestore,
+  saveTranscriptToFirestore,
+} from "./contentSlice"
 
 import {
   selectStatus,
@@ -18,6 +25,8 @@ import {
   selectTextElements,
   selectFinalTranscriptIndex,
   selectInterimTranscriptIndex,
+  selectTranscriptId,
+  selectIsLoading,
 } from "./contentSlice"
 
 export const Content = () => {
@@ -34,6 +43,8 @@ export const Content = () => {
   const textElements = useAppSelector(selectTextElements)
   const finalTranscriptIndex = useAppSelector(selectFinalTranscriptIndex)
   const interimTranscriptIndex = useAppSelector(selectInterimTranscriptIndex)
+  const transcriptId = useAppSelector(selectTranscriptId)
+  const isLoading = useAppSelector(selectIsLoading)
 
   const style = {
     fontSize: `${fontSize}px`,
@@ -43,6 +54,41 @@ export const Content = () => {
   const containerRef = useRef<null | HTMLDivElement>(null)
   const lastRef = useRef<null | HTMLDivElement>(null)
   const bottomSpacerRef = useRef<null | HTMLDivElement>(null)
+  const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+
+  // Initialize transcript ID on mount
+  useEffect(() => {
+    dispatch(initializeTranscriptId())
+  }, [dispatch])
+
+  // Load transcript from Firestore when transcript ID is set
+  useEffect(() => {
+    if (transcriptId) {
+      dispatch(loadTranscriptFromFirestore(transcriptId))
+    }
+  }, [dispatch, transcriptId])
+
+  // Auto-save transcript when content changes (debounced)
+  useEffect(() => {
+    if (!transcriptId || !rawText) return
+
+    // Clear existing timeout
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current)
+    }
+
+    // Save after 1 second of no changes
+    saveTimeoutRef.current = setTimeout(() => {
+      dispatch(saveTranscriptToFirestore({ transcriptId, content: rawText }))
+    }, 1000)
+
+    // Cleanup
+    return () => {
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current)
+      }
+    }
+  }, [dispatch, transcriptId, rawText])
 
   useEffect(() => {
     if (containerRef.current) {
@@ -71,7 +117,11 @@ export const Content = () => {
 
   return (
     <main className="content-area">
-      {status === "editing" ? (
+      {isLoading && status !== "editing" ? (
+        <div className="content" style={style}>
+          <p>Loading transcript...</p>
+        </div>
+      ) : status === "editing" ? (
         <textarea
           className="content"
           style={style}
